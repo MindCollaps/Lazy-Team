@@ -1,0 +1,142 @@
+Button {
+    -fx-text-fill: white;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-font-family: "Arial Narrow";
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow( three-pass-box , rgba(0,0,0,0.6) , 5, 0.0 , 0 , 1 );
+}
+
+#cItem {
+    -fx-border-color: #545454BB;
+}
+
+
+.tree-view, .tree-cell {
+    -fx-background: Transparent;
+    -fx-background-color: Transparent;
+    -fx-text-fill: white ;
+    -fx-padding: 5;
+}
+.tree-cell:expanded, .tree-cell:sub-tree-item {
+-fx-background: Transparent;
+    -fx-background-color: Transparent;
+}
+.tree-cell:selected {
+    -fx-font-weight: bold ;
+}
+.tree-cell {
+    -fx-padding: 0.75em 0em 0.75em 0em ;
+}
+.tree-cell:sub-tree-item {
+    -fx-padding: 0.25em ;
+    -fx-indent: 22;
+}
+
+ChoiceBox {
+    -fx-text-fill: white;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-font-family: "Arial Narrow";
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow( three-pass-box , rgba(0,0,0,0.6) , 5, 0.0 , 0 , 1 );
+    -fx-background-color: linear-gradient(#0196BEAA, #885AEAAA);
+}
+
+#buttonBlue {
+    -fx-background-color: linear-gradient(#61a2b1, #2A5058);
+}
+
+#buttonBlue:hover {
+    -fx-background-color: linear-gradient(#2A5058, #61a2b1);
+}
+
+#buttonRed{
+    -fx-background-color: linear-gradient(#FF0000, #B40404);
+}
+
+#buttonRed:hover {
+    -fx-background-color: linear-gradient(#B40404, #FF0000);
+}
+
+#buttonGreen {
+    -fx-background-color: linear-gradient(#01DF01, #088A29);
+}
+
+#buttonGreen:hover {
+    -fx-background-color: linear-gradient(#088A29, #01DF01);
+}
+
+#buttonYellow {
+    -fx-background-color: linear-gradient(#D7DF01, #AEB404);
+}
+
+#buttonYellow:hover {
+    -fx-background-color: linear-gradient(#AEB404, #D7DF01);
+}
+AnchorPane {
+    -fx-background-color: #22222244;
+}
+
+ScrollPane{
+    -fx-background: Transparent;
+    -fx-background-color: #25252544;
+    -fx-border-color: black;
+}
+
+Label{
+    -fx-text-fill: white;
+    -fx-effect: dropshadow( three-pass-box , rgba(0,0,0,0.6) , 5, 0.0 , 0 , 1 );
+
+}
+
+Separator{
+	-fx-background: #111111;
+
+}
+VBox{
+    -fx-background-color: #0174DF88;
+}
+TextArea{
+    -fx-control-inner-background: #252525EE;
+    -fx-border-color: black;
+}
+TextField{
+    -fx-control-inner-background: #252525EE;
+    -fx-border-color: black;
+}
+
+.menu-bar, .tab, tab-pane{
+    -fx-background-color: #0174DF88;
+    -fx-background: transparent;
+}
+
+.menu-bar .label, .tab-label{
+    -fx-text-fill: white;
+}
+
+.menu-bar .context-menu, .tab-header-area{
+    -fx-background-color: #42424288;
+    -fx-background: transparent;
+}
+
+.scroll-bar, scroll-pane, .scroll-pane > .viewport, .scroll-pane > .corner{
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.scroll-bar > .track{
+    -fx-background-color: #2E2E2E22;
+    -fx-background: #2E2E2E22;
+    -fx-border-color: transparent;
+}
+
+.thumb{
+    -fx-background-color: #2E2E2EEF;
+    -fx-border-color: transparent;
+}
+
+TabPane{
+    -fx-background-color: transparent;
+    -fx-border-color: red;
+}
