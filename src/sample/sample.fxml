@@ -20,6 +20,7 @@
                   <MenuItem mnemonicParsing="false" onAction="#onCreateLang" text="Add lang String" />
                   <SeparatorMenuItem mnemonicParsing="false" />
                   <MenuItem mnemonicParsing="false" onAction="#onOpenJson" text="Open JSON File" />
+                  <MenuItem mnemonicParsing="false" onAction="#onLoadAsSchema" text="Open JSON File as schema" />
                   <MenuItem mnemonicParsing="false" onAction="#onOpenJsonLang" text="Open JSON File as lang" />
                   <SeparatorMenuItem mnemonicParsing="false" />
                   <MenuItem mnemonicParsing="false" onAction="#onJsonSave" text="Save JSON File" />

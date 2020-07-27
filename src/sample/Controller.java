@@ -21,8 +21,6 @@ import org.json.simple.parser.JSONParser;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 
 public class Controller {
 
@@ -37,15 +35,18 @@ public class Controller {
     @FXML
     public AnchorPane langChoose;
     @FXML
-    public ChoiceBox lang1;
+    public ChoiceBox<String> lang1;
     @FXML
-    public ChoiceBox lang2;
+    public ChoiceBox<String> lang2;
 
     private ArrayList<LangRefItem> langRefItems = new ArrayList<>();
     private ATreesItem items;
+    private GeneralSchema generalSchemaschema;
     private JSONObject json;
 
     private boolean lang = false;
+    private boolean schema = false;
+    private boolean jsonb = false;
 
     public void init(Stage s, Stage mainStage, Scene scene) {
         stage = s;
@@ -70,13 +71,15 @@ public class Controller {
 
     private void close() {
         int i = new AllertBox(scene, Modality.APPLICATION_MODAL).displayEvenOd("Sure you want to leave?", "End programm", "yes", "no", false);
-        if(i == 0){
+        if (i == 0) {
             System.exit(0);
         }
     }
 
     public void onOpenJson(ActionEvent actionEvent) {
         lang = false;
+        schema = false;
+        jsonb = true;
         langChoose.setVisible(false);
         json = loadJsonFile();
         buildJsonTree();
@@ -84,6 +87,8 @@ public class Controller {
 
     public void onOpenJsonLang(ActionEvent actionEvent) {
         lang = true;
+        schema = false;
+        jsonb = false;
         JSONObject o = loadJsonFile();
         json = o;
         Object[] s = o.keySet().toArray();
@@ -96,6 +101,15 @@ public class Controller {
             lang2.getItems().add(st);
         }
         langChoose.setVisible(true);
+    }
+
+    public void onLoadAsSchema(ActionEvent actionEvent) {
+        lang = false;
+        schema = true;
+        jsonb = false;
+        langChoose.setVisible(false);
+        json = loadJsonFile();
+        buildSchema();
     }
 
     public void onJsonSave(ActionEvent actionEvent) {
@@ -112,9 +126,12 @@ public class Controller {
                 lang1.put(i.getlInv(), i.getlTrans());
                 lang2.put(i.getrInv(), i.getrTrans());
             }
-        } else {
+        } else if (jsonb) {
             o = new JSONObject();
             buildJsonObjectFromTreeItem(o, items);
+        } else if (schema) {
+            o = new JSONObject();
+            buildJsonObjectFromSchema(generalSchemaschema, o);
         }
 
         String path;
@@ -134,6 +151,49 @@ public class Controller {
         } catch (IOException e) {
             e.printStackTrace();
             new AllertBox(null, Modality.APPLICATION_MODAL).displayMessage("Error", "Error while save!", "ok", "buttonBlue", false);
+        }
+    }
+
+    private void buildJsonObjectFromSchema(GeneralSchema s, JSONObject o) {
+        for (GeneralSchema g : s.getSchemaObjects()) {
+            JSONObject object = new JSONObject();
+            buildJsonObjectFromSchema(g, object);
+            o.put(g.getName(), object);
+        }
+
+        for (SchemaTxtField g : s.getTextFields()) {
+            if (g.isChoiceBox())
+                o.put(g.getName(), g.getCb().getValue());
+            else
+                o.put(g.getName(), g.getTxtField().getText());
+        }
+
+        for (SchemaArray g : s.getSchemaArrays()) {
+            JSONArray jsonArray = new JSONArray();
+            buildJsonArrayFromSchema(g, jsonArray);
+            o.put(g.getName(), jsonArray);
+        }
+    }
+
+    private void buildJsonArrayFromSchema(SchemaArray s, JSONArray o) {
+        for (GeneralSchema g : s.getSchemaObjects()) {
+            JSONObject object = new JSONObject();
+            buildJsonObjectFromSchema(g, object);
+
+            o.add(object);
+        }
+
+        for (SchemaTxtField g : s.getTextFields()) {
+            if (g.isChoiceBox())
+                o.add(g.getCb().getValue());
+            else
+                o.add(g.getTxtField().getText());
+        }
+
+        for (SchemaArray g : s.getSchemaArrays()) {
+            JSONArray jsonArray = new JSONArray();
+            buildJsonArrayFromSchema(g, jsonArray);
+            o.add(jsonArray);
         }
     }
 
@@ -198,7 +258,7 @@ public class Controller {
         items.getButtonDelete().setDisable(true);
         try {
             makeItemFromObject(hBoxTreeItem, json, items);
-        } catch (Exception e){
+        } catch (Exception e) {
             new AllertBox(scene, Modality.APPLICATION_MODAL).displayMessage("Error", "Error while parsing json to language list, maybe no supported language format?", "dope", "buttonYellow", false);
             return;
         }
@@ -240,7 +300,7 @@ public class Controller {
             i.getChildren().add(treeItem);
             aTreesItem.updateLabel();
             root.getItems().add(aTreesItem);
-            if(aTreesItem.getContentType() != ContentType.StringIdent || aTreesItem.getContentType() != ContentType.Array)
+            if (aTreesItem.getContentType() != ContentType.StringIdent || aTreesItem.getContentType() != ContentType.Array)
                 treeItem.setExpanded(true);
         }
     }
@@ -276,8 +336,8 @@ public class Controller {
     private void buildLangList() {
         content.getChildren().clear();
         langRefItems.clear();
-        String langO = (String) this.lang2.getValue();
-        String langB = (String) this.lang1.getValue();
+        String langO = this.lang2.getValue();
+        String langB = this.lang1.getValue();
         JSONObject lang1 = (JSONObject) json.get(langO);
         JSONObject lang2 = (JSONObject) json.get(langB);
         Object[] o = lang1.keySet().toArray();
@@ -290,14 +350,76 @@ public class Controller {
             ref.setrInv(s);
             ref.setlLang(langO);
             ref.setrLang(langB);
-            if(lang1.get(s) != null){
+            if (lang1.get(s) != null) {
                 ref.setlTrans(((String) lang1.get(s)).replace("\n", "\\n"));
             }
-            if(lang2.get(s) != null){
+            if (lang2.get(s) != null) {
                 ref.setrTrans(((String) lang2.get(s)).replace("\n", "\\n"));
             }
             ref.build();
             langRefItems.add(ref);
+        }
+    }
+
+    private void buildSchema() {
+        GeneralSchema s = jsonToSchema(json, null);
+        s.init2 = true;
+        generalSchemaschema = s;
+        content.getChildren().clear();
+
+        TreeView<HBox> tree = new TreeView<>();
+        tree.setRoot(s.buildSchema(false));
+        tree.setPrefHeight(719);
+        content.getChildren().add(tree);
+    }
+
+    private GeneralSchema jsonToSchema(JSONObject o, GeneralSchema schema) {
+        if (schema == null)
+            schema = new GeneralSchema();
+        for (Object oS : o.keySet().toArray()) {
+            String g = (String) oS;
+            Object oE = o.get(g);
+            if (oE instanceof String) {
+                SchemaTxtField txtField = new SchemaTxtField();
+                txtField.setName(g);
+                txtField.setCbCont((String) oE);
+                txtField.setParent(schema);
+                schema.getTextFields().add(txtField);
+            } else if (oE instanceof JSONObject) {
+                GeneralSchema s = new GeneralSchema();
+                s.setName(g);
+                jsonToSchema((JSONObject) oE, s);
+                s.setParent(schema);
+                schema.getSchemaObjects().add(s);
+            } else if (oE instanceof JSONArray) {
+                SchemaArray a = new SchemaArray();
+                a.setName(g);
+                loadInnerArraySchema(a, (JSONArray) oE);
+                a.setParent(schema);
+                schema.getSchemaArrays().add(a);
+            }
+        }
+        return schema;
+    }
+
+    private void loadInnerArraySchema(SchemaArray o, JSONArray obj) {
+        for (Object oS : obj.toArray()) {
+            if (oS instanceof String) {
+                SchemaTxtField txtField = new SchemaTxtField();
+                txtField.setParent(o);
+                txtField.setCbCont((String) oS);
+                o.getTextFields().add(txtField);
+            } else if (oS instanceof JSONObject) {
+                GeneralSchema s = new GeneralSchema();
+                s.setParent(o);
+                jsonToSchema((JSONObject) oS, s);
+                o.getSchemaObjects().add(s);
+            } else if (oS instanceof JSONArray) {
+                SchemaArray a = new SchemaArray();
+                a.setParent(o);
+                loadInnerArraySchema(a, (JSONArray) oS);
+                o.getSchemaArrays().add(a);
+            }
         }
     }
 
@@ -350,20 +472,332 @@ public class Controller {
     }
 
     public void onCreateLang(ActionEvent actionEvent) {
-        if(langRefItems == null){
+        if (langRefItems == null) {
             new AllertBox(scene, Modality.APPLICATION_MODAL).displayMessage("Error", "You didn't opened a lang file yet!", "dough", "buttonYellow", false);
             return;
         }
-        if(lang || langRefItems.size() > 0){
+        if (lang || langRefItems.size() > 0) {
             HBox hBox = new HBox();
             LangRefItem langRefItem = new LangRefItem(hBox);
-            langRefItem.setlTrans((String) lang1.getValue());
-            langRefItem.setrTrans((String) lang2.getValue());
+            langRefItem.setrLang(lang1.getValue());
+            langRefItem.setlLang(lang2.getValue());
             langRefItem.build();
             langRefItems.add(langRefItem);
             content.getChildren().add(hBox);
         } else {
             new AllertBox(scene, Modality.APPLICATION_MODAL).displayMessage("Error", "You didn't opened a lang file yet!", "dough", "buttonYellow", false);
+        }
+    }
+
+    private class GeneralSchema {
+        private ArrayList<SchemaTxtField> textFields = new ArrayList<>();
+        private ArrayList<SchemaArray> schemaArrays = new ArrayList<>();
+        private ArrayList<GeneralSchema> schemaObjects = new ArrayList<>();
+        private String name = "root";
+        private GeneralSchema parent;
+        private HBox ownBox;
+        private TreeItem<HBox> ownTreeItem;
+        private Label label = new Label();
+        private TextField textField = new TextField();
+        private boolean init2 = false;
+        private boolean init = false;
+
+        public TreeItem<HBox> buildSchema(boolean buttons) {
+            ownTreeItem = new TreeItem<>();
+            ownBox = new HBox();
+            ownBox.setSpacing(10);
+            ownTreeItem.setValue(ownBox);
+            label.setText(name);
+            if (init)
+                ownBox.getChildren().add(textField);
+            else
+                ownBox.getChildren().add(label);
+            for (SchemaTxtField txtField : textFields) {
+                ownTreeItem.getChildren().add(txtField.buildSchema());
+            }
+
+            for (SchemaArray array : schemaArrays) {
+                ownTreeItem.getChildren().add(array.buildSchema());
+            }
+
+            for (GeneralSchema schema : schemaObjects) {
+                if(init2)
+                    schema.init = true;
+                ownTreeItem.getChildren().add(schema.buildSchema(false));
+            }
+            if (buttons)
+                putTxtButtons(false, true);
+            return ownTreeItem;
+        }
+
+        private void putTxtButtons(boolean adding, boolean del) {
+            Button delete = new Button("X");
+            delete.setId("buttonRed");
+            delete.setOnAction(e -> {
+                getParent().getSchemaObjects().remove(this);
+                getParent().getOwnTreeItem().getChildren().remove(getOwnTreeItem());
+            });
+
+            Button add = null;
+            if (adding) {
+                add = new Button("+");
+                add.setId("buttonGreen");
+                add.setOnAction(e -> {
+                    GeneralSchema g = cloneBase();
+                    getOwnTreeItem().getChildren().add(g.buildSchema(true));
+                    getSchemaObjects().add(g);
+                });
+            }
+            if (add != null)
+                ownBox.getChildren().add(add);
+
+            if (del)
+                ownBox.getChildren().add(delete);
+        }
+
+        public GeneralSchema cloneBase() {
+            GeneralSchema gs = new GeneralSchema();
+            gs.setParent(getParent());
+            gs.setName(getName());
+            gs.setSchemaArrays(copyArray());
+            gs.setSchemaObjects(copyObj());
+            gs.setTextFields(copyTxt());
+
+            return gs;
+        }
+
+        public ArrayList<SchemaArray> copyArray() {
+            ArrayList<SchemaArray> ar = new ArrayList<>();
+            for (SchemaArray arr : schemaArrays)
+                ar.add(arr.clone());
+            return ar;
+        }
+
+        public ArrayList<GeneralSchema> copyObj() {
+            ArrayList<GeneralSchema> ar = new ArrayList<>();
+            for (GeneralSchema arr : schemaObjects)
+                ar.add(arr.cloneBase());
+            return ar;
+        }
+
+        public ArrayList<SchemaTxtField> copyTxt() {
+            ArrayList<SchemaTxtField> ar = new ArrayList<>();
+            for (SchemaTxtField arr : textFields)
+                ar.add(arr.clone());
+            return ar;
+        }
+
+        public TreeItem<HBox> getOwnTreeItem() {
+            return ownTreeItem;
+        }
+
+        public void setOwnTreeItem(TreeItem<HBox> ownTreeItem) {
+            this.ownTreeItem = ownTreeItem;
+        }
+
+        public HBox getOwnBox() {
+            return ownBox;
+        }
+
+        public void setOwnBox(HBox ownBox) {
+            this.ownBox = ownBox;
+        }
+
+        public GeneralSchema getParent() {
+            return parent;
+        }
+
+        public void setParent(GeneralSchema parent) {
+            this.parent = parent;
+        }
+
+        public ArrayList<SchemaTxtField> getTextFields() {
+            return textFields;
+        }
+
+        public void setTextFields(ArrayList<SchemaTxtField> textFields) {
+            this.textFields = textFields;
+        }
+
+        public ArrayList<SchemaArray> getSchemaArrays() {
+            return schemaArrays;
+        }
+
+        public void setSchemaArrays(ArrayList<SchemaArray> schemaArrays) {
+            this.schemaArrays = schemaArrays;
+        }
+
+        public ArrayList<GeneralSchema> getSchemaObjects() {
+            return schemaObjects;
+        }
+
+        public void setSchemaObjects(ArrayList<GeneralSchema> schemaObjects) {
+            this.schemaObjects = schemaObjects;
+        }
+
+        public String getName() {
+            if(init)
+                return textField.getText();
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+    }
+
+    private class SchemaTxtField extends GeneralSchema {
+        private TextField txtField = new TextField();
+        private ChoiceBox<String> cb = new ChoiceBox<>();
+        private boolean choiceBox = false;
+        private String cbCont;
+        boolean isInArray = false;
+
+        private void putTxtButtons(boolean adding) {
+            Button delete = new Button("X");
+            delete.setId("buttonRed");
+            delete.setOnAction(e -> {
+                getParent().getTextFields().remove(this);
+                getParent().getOwnTreeItem().getChildren().remove(getOwnTreeItem());
+            });
+
+            Button add = null;
+            if (adding) {
+                add = new Button("+");
+                add.setId("buttonGreen");
+                add.setOnAction(e -> {
+                    SchemaTxtField t = clone();
+                    getParent().getTextFields().add(t);
+                    getParent().getOwnTreeItem().getChildren().add(t.buildSchema());
+                });
+            }
+            if (add != null)
+                getOwnBox().getChildren().add(add);
+            getOwnBox().getChildren().add(delete);
+        }
+
+        public TreeItem<HBox> buildSchema() {
+            super.buildSchema(false);
+            loadTxtSchema();
+            if (choiceBox)
+                getOwnBox().getChildren().add(cb);
+            else
+                getOwnBox().getChildren().add(txtField);
+
+            getOwnTreeItem().setValue(getOwnBox());
+
+            if (isInArray)
+                putTxtButtons(false);
+            return getOwnTreeItem();
+        }
+
+        public SchemaTxtField clone() {
+            SchemaTxtField t = new SchemaTxtField();
+            t.setParent(getParent());
+            t.setName(getName());
+            t.setChoiceBox(choiceBox);
+            t.setCbCont(cbCont);
+            t.setSchemaArrays(copyArray());
+            t.setSchemaObjects(copyObj());
+            t.setTextFields(copyTxt());
+
+            return t;
+        }
+
+        public void loadTxtSchema() {
+            if (cbCont != null)
+                if (!cbCont.equals("")) {
+
+                    String[] ar = cbCont.split("/");
+                    if (ar.length > 0) {
+                        for (String s : ar) {
+                            cb.getItems().add(s);
+                        }
+                        choiceBox = true;
+                    }
+                }
+        }
+
+        public boolean isInArray() {
+            return isInArray;
+        }
+
+        public void setInArray(boolean inArray) {
+            isInArray = inArray;
+        }
+
+        public String getCbCont() {
+            return cbCont;
+        }
+
+        public void setCbCont(String cbCont) {
+            this.cbCont = cbCont;
+        }
+
+        public boolean isChoiceBox() {
+            return choiceBox;
+        }
+
+        public void setChoiceBox(boolean choiceBox) {
+            this.choiceBox = choiceBox;
+        }
+
+        public ChoiceBox<String> getCb() {
+            return cb;
+        }
+
+        public void setCb(ChoiceBox<String> cb) {
+            this.cb = cb;
+        }
+
+        public TextField getTxtField() {
+            return txtField;
+        }
+
+        public void setTxtField(TextField txtField) {
+            this.txtField = txtField;
+        }
+    }
+
+    private class SchemaArray extends GeneralSchema {
+
+        String schema;
+
+        public TreeItem<HBox> buildSchema() {
+            boolean b = getSchemaObjects().size() > 0;
+            super.buildSchema(false);
+
+            Button add;
+            add = new Button("+");
+            add.setId("buttonGreen");
+            add.setOnAction(e -> {
+                if (getSchemaObjects().size() > 0) {
+                    GeneralSchema s = getSchemaObjects().get(0).cloneBase();
+                    getOwnTreeItem().getChildren().add(s.buildSchema(true));
+                    getSchemaObjects().add(s);
+                } else {
+                    SchemaTxtField txtField = new SchemaTxtField();
+                    txtField.setCbCont(schema);
+                    txtField.setParent(this);
+                    txtField.setInArray(true);
+                    getTextFields().add(txtField);
+                    getOwnTreeItem().getChildren().add(txtField.buildSchema());
+                }
+            });
+            getOwnBox().getChildren().add(add);
+
+            return getOwnTreeItem();
+        }
+
+        public SchemaArray clone() {
+            SchemaArray t = new SchemaArray();
+            t.setParent(getParent());
+            t.setName(getName());
+            t.setSchemaArrays(copyArray());
+            t.setSchemaObjects(copyObj());
+            t.setTextFields(copyTxt());
+
+            return t;
         }
     }
 
@@ -403,8 +837,8 @@ public class Controller {
             buttonDelete = new Button("X");
             buttonDelete.setId("buttonRed");
             buttonDelete.setOnAction(e -> {
-                if(contentType == ContentType.String){
-                    if(parent.contentType == ContentType.StringIdent){
+                if (contentType == ContentType.String) {
+                    if (parent.contentType == ContentType.StringIdent) {
                         parent.getParent().getItems().remove(parent);
                         parent.getParent().getOwnTreeItem().getChildren().remove(parent.getOwnTreeItem());
                     }
