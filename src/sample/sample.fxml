@@ -30,7 +30,7 @@
           </Menu>
         </menus>
       </MenuBar>
-      <ScrollPane hbarPolicy="NEVER" layoutY="25.0" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="50.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="25.0">
+      <ScrollPane fx:id="scrollpane" hbarPolicy="NEVER" layoutY="25.0" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="50.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="25.0">
          <content>
             <VBox fx:id="content" alignment="TOP_CENTER" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefWidth="1198.0" spacing="5.0" />
          </content></ScrollPane>

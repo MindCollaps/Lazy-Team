@@ -29,6 +29,8 @@ public class Controller {
     private Scene scene;
 
     @FXML
+    public ScrollPane scrollpane;
+    @FXML
     private MenuBar menuBar;
     @FXML
     public VBox content;
@@ -66,6 +68,7 @@ public class Controller {
             close();
         });
         new MoveListener(menuBar, stage);
+        new MoveListener(scrollpane, stage);
         stage.show();
     }
 
