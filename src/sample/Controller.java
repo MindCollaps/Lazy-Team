@@ -11,16 +11,14 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.stage.FileChooser;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.stage.StageStyle;
+import javafx.stage.*;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.TreeMap;
 
 public class Controller {
 
@@ -76,6 +74,179 @@ public class Controller {
         int i = new AllertBox(scene, Modality.APPLICATION_MODAL).displayEvenOd("Sure you want to leave?", "End programm", "yes", "no", false);
         if (i == 0) {
             System.exit(0);
+        }
+    }
+
+    public void onCheckMonster(ActionEvent actionEvent) {
+        JSONObject json = loadJsonFile();
+        Object[] a = json.keySet().toArray();
+
+        ArrayList<MnsterError> errors = new ArrayList<>();
+
+        for (Object aS:a) {
+            MnsterError er = new MnsterError();
+            String s = (String) aS;
+            er.setMnsterName(s);
+            JSONObject mnster = (JSONObject) json.get(s);
+
+            if(isStringInvalid(s))
+                er.addError("name invalid");
+            if(isStringInvalid((String) mnster.get("img")))
+            er.addError("image invalid");
+            try {
+                Integer.parseInt((String) mnster.get("hp"));
+            } catch (Exception e){
+                er.addError("hp invalid");
+            }
+            try {
+                Integer.parseInt((String) mnster.get("lvl"));
+            } catch (Exception e){
+                er.addError("level invalid");
+            }
+            if(isStringInvalid((String) mnster.get("rar")))
+                er.addError("rarity invalid");
+
+            JSONArray arr = (JSONArray) mnster.get("attacks");
+            if(arr == null){
+                er.addError("attacks list invalid");
+            } else {
+                for (Object o:arr) {
+                    JSONObject att = (JSONObject) o;
+
+                    String name = ((String) att.get("name"));
+                    if(isStringInvalid(name)) {
+                        er.addError("attack name invalid");
+                        name = "invliad";
+                    }
+
+                    try {
+                        Integer.parseInt((String) att.get("usage"));
+                    } catch (Exception e){
+                        er.addError("attack: " + name +" usage invalid");
+                    }
+                    try {
+                        Integer.parseInt((String) att.get("dmg"));
+                    } catch (Exception e){
+                        er.addError("attack: " + name +" damage invalid");
+                    }
+                    try {
+                        Integer.parseInt((String) att.get("lvl"));
+                    } catch (Exception e){
+                        er.addError("attack: " + name +" level invalid");
+                    }
+                }
+            }
+            errors.add(er);
+        }
+
+        if(errors.size()>=1){
+            content.getChildren().clear();
+            TreeView<String> map = new TreeView<>();
+            map.setPrefHeight(719);
+            content.getChildren().add(map);
+            TreeItem root = new TreeItem();
+            root.setExpanded(true);
+            root.setValue("errors");
+            map.setRoot(root);
+            for (MnsterError err:errors) {
+                if(err.getError().size()>=1){
+                    TreeItem<String> s = new TreeItem<>();
+                    s.setExpanded(true);
+                    s.setValue(err.getMnsterName());
+                    s.getChildren().addAll(arrToTreeItem(err.getError()));
+                    root.getChildren().add(s);
+                }
+            }
+        }
+    }
+
+    private ArrayList<TreeItem<String>> arrToTreeItem(ArrayList<String> a){
+        ArrayList<TreeItem<String>> arr = new ArrayList<>();
+        for (String s:a) {
+            TreeItem<String> t = new TreeItem<>();
+            t.setValue(s);
+            arr.add(t);
+        }
+        return arr;
+    }
+    
+    private boolean isStringInvalid(String s){
+        if(s==null)
+            return true;
+
+        if(s.equals(""))
+            return true;
+
+        return false;
+    }
+
+    public class MnsterError {
+        String mnsterName;
+        ArrayList<String> error = new ArrayList<>();
+
+        public String getMnsterName() {
+            return mnsterName;
+        }
+
+        public void setMnsterName(String mnsterName) {
+            this.mnsterName = mnsterName;
+        }
+
+        public void addError(String error){
+            this.error.add(error);
+        }
+
+        public ArrayList<String> getError() {
+            return error;
+        }
+    }
+
+
+    public void onImportJson(ActionEvent actionEvent) {
+        if(jsonb){
+            JSONObject json = loadJsonFile();
+            Object[] a = json.keySet().toArray();
+
+            for (Object aS:a) {
+                String s = (String) aS;
+                if(this.json.containsKey(s))
+                    this.json.remove(s);
+                JSONObject obj = (JSONObject) json.get(s);
+                this.json.put(s, obj);
+            }
+            buildJsonTree();
+        }
+    }
+
+    public void onImportJsons(ActionEvent actionEvent) {
+        if(jsonb){
+            JSONParser parser = new JSONParser();
+            Reader reader;
+            JSONObject obj;
+            DirectoryChooser dc = new DirectoryChooser();
+            File dir = dc.showDialog(stage);
+            if(dir != null){
+                for (File f:dir.listFiles()){
+                    if(!f.isFile())
+                        continue;
+                    try {
+                        reader = new FileReader(f.getAbsolutePath());
+                        obj = (JSONObject) parser.parse(reader);
+                        reader.close();
+                    } catch (Exception e) {
+                        System.out.println("ERRORORORRO!!!!");
+                        return;
+                    }
+
+                    Object[] a = obj.keySet().toArray();
+                    for (Object aS:a) {
+                        String s = (String) aS;
+                        JSONObject objj = (JSONObject) obj.get(s);
+                        this.json.put(s, objj);
+                    }
+                }
+                buildJsonTree();
+            }
         }
     }
 
@@ -262,7 +433,7 @@ public class Controller {
         try {
             makeItemFromObject(hBoxTreeItem, json, items);
         } catch (Exception e) {
-            new AllertBox(scene, Modality.APPLICATION_MODAL).displayMessage("Error", "Error while parsing json to language list, maybe no supported language format?", "dope", "buttonYellow", false);
+            new AllertBox(scene, Modality.APPLICATION_MODAL).displayMessage("Error", "Error?", "dope", "buttonYellow", false);
             return;
         }
 
@@ -299,6 +470,7 @@ public class Controller {
                 makeItemFromArray(treeItem, (JSONArray) o.get(inv), aTreesItem);
             } else {
                 System.out.println("Error in parsing Json to Tree Item | Not a valid Class");
+                continue;
             }
             i.getChildren().add(treeItem);
             aTreesItem.updateLabel();
@@ -328,6 +500,7 @@ public class Controller {
                 makeItemFromArray(hBoxTreeItem, (JSONArray) stOb, aTreesItem);
             } else {
                 System.out.println("Error in parsing Json to Tree Item | Not a valid Class");
+                continue;
             }
             i.getChildren().add(hBoxTreeItem);
             root.getItems().add(aTreesItem);
@@ -491,6 +664,7 @@ public class Controller {
             new AllertBox(scene, Modality.APPLICATION_MODAL).displayMessage("Error", "You didn't opened a lang file yet!", "dough", "buttonYellow", false);
         }
     }
+
 
     private class GeneralSchema {
         private ArrayList<SchemaTxtField> textFields = new ArrayList<>();
@@ -1066,6 +1240,9 @@ public class Controller {
                 n.setStyle("-fx-background-color: \"red\";");
             else
                 n.setText(txt);
+
+            if(txt.equals(""))
+                n.setStyle("-fx-background-color: \"red\";");
 
             n.setOnMouseClicked(l -> {
                 n.setStyle("");
