@@ -125,7 +125,9 @@ public class Controller {
                         er.addError("attack: " + name +" usage invalid");
                     }
                     try {
-                        Integer.parseInt((String) att.get("dmg"));
+                        int dmg = Integer.parseInt((String) att.get("dmg"));
+                        if(dmg>60)
+                            er.addError("attack: " + name + " very high damage");
                     } catch (Exception e){
                         er.addError("attack: " + name +" damage invalid");
                     }
